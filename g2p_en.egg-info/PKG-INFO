@@ -2,7 +2,7 @@ Metadata-Version: 1.1
 Name: g2p-en
 Version: 2.0.0
 Summary: A Simple Python Module for English Grapheme To Phoneme Conversion
-Home-page: https://github.com/Kyubyong/g2p
+Home-page: https://github.com/hadaev8/g2p
 Author: Kyubyong Park & Jongseok Kim
 Author-email: kbpark.linguist@gmail.com
 License: Apache Software License
