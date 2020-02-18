@@ -7,8 +7,8 @@ https://www.github.com/kyubyong/g2p
 from nltk import pos_tag
 from nltk.corpus import cmudict
 import nltk
-from nltk.tokenize import TweetTokenizer
-word_tokenize = TweetTokenizer().tokenize
+from nltk.tokenize import RegexpTokenizer
+word_tokenize = RegexpTokenizer('\w+|[^\w|\\n]+').tokenize
 import numpy as np
 import codecs
 import re
@@ -28,13 +28,16 @@ except LookupError:
 
 dirname = os.path.dirname(__file__)
 
+
 def construct_homograph_dictionary():
-    f = os.path.join(dirname,'homographs.en')
+    f = os.path.join(dirname, 'homographs.en')
     homograph2features = dict()
     for line in codecs.open(f, 'r', 'utf8').read().splitlines():
-        if line.startswith("#"): continue # comment
+        if line.startswith("#"):
+            continue  # comment
         headword, pron1, pron2, pos1 = line.strip().split("|")
-        homograph2features[headword.lower()] = (pron1.split(), pron2.split(), pos1)
+        homograph2features[headword.lower()] = (
+            pron1.split(), pron2.split(), pos1)
     return homograph2features
 
 # def segment(text):
@@ -48,10 +51,12 @@ def construct_homograph_dictionary():
 #     print(text)
 #     return text.split()
 
+
 class G2p(object):
     def __init__(self):
         super().__init__()
-        self.graphemes = ["<pad>", "<unk>", "</s>"] + list("abcdefghijklmnopqrstuvwxyz")
+        self.graphemes = ["<pad>", "<unk>", "</s>"] + \
+            list("abcdefghijklmnopqrstuvwxyz")
         self.phonemes = ["<pad>", "<unk>", "<s>", "</s>"] + ['AA0', 'AA1', 'AA2', 'AE0', 'AE1', 'AE2', 'AH0', 'AH1', 'AH2', 'AO0',
                                                              'AO1', 'AO2', 'AW0', 'AW1', 'AW2', 'AY0', 'AY1', 'AY2', 'B', 'CH', 'D', 'DH',
                                                              'EH0', 'EH1', 'EH2', 'ER0', 'ER1', 'ER2', 'EY0', 'EY1',
@@ -72,14 +77,16 @@ class G2p(object):
         self.homograph2features = construct_homograph_dictionary()
 
     def load_variables(self):
-        self.variables = np.load(os.path.join(dirname,'checkpoint20.npz'))
-        self.enc_emb = self.variables["enc_emb"]  # (29, 64). (len(graphemes), emb)
+        self.variables = np.load(os.path.join(dirname, 'checkpoint20.npz'))
+        # (29, 64). (len(graphemes), emb)
+        self.enc_emb = self.variables["enc_emb"]
         self.enc_w_ih = self.variables["enc_w_ih"]  # (3*128, 64)
         self.enc_w_hh = self.variables["enc_w_hh"]  # (3*128, 128)
         self.enc_b_ih = self.variables["enc_b_ih"]  # (3*128,)
         self.enc_b_hh = self.variables["enc_b_hh"]  # (3*128,)
 
-        self.dec_emb = self.variables["dec_emb"]  # (74, 64). (len(phonemes), emb)
+        # (74, 64). (len(phonemes), emb)
+        self.dec_emb = self.variables["dec_emb"]
         self.dec_w_ih = self.variables["dec_w_ih"]  # (3*128, 64)
         self.dec_w_hh = self.variables["dec_w_hh"]  # (3*128, 128)
         self.dec_b_ih = self.variables["dec_b_ih"]  # (3*128,)
@@ -94,8 +101,10 @@ class G2p(object):
         rzn_ih = np.matmul(x, w_ih.T) + b_ih
         rzn_hh = np.matmul(h, w_hh.T) + b_hh
 
-        rz_ih, n_ih = rzn_ih[:, :rzn_ih.shape[-1] * 2 // 3], rzn_ih[:, rzn_ih.shape[-1] * 2 // 3:]
-        rz_hh, n_hh = rzn_hh[:, :rzn_hh.shape[-1] * 2 // 3], rzn_hh[:, rzn_hh.shape[-1] * 2 // 3:]
+        rz_ih, n_ih = rzn_ih[:, :rzn_ih.shape[-1] * 2 //
+                             3], rzn_ih[:, rzn_ih.shape[-1] * 2 // 3:]
+        rz_hh, n_hh = rzn_hh[:, :rzn_hh.shape[-1] * 2 //
+                             3], rzn_hh[:, rzn_hh.shape[-1] * 2 // 3:]
 
         rz = self.sigmoid(rz_ih + rz_hh)
         r, z = np.split(rz, 2, -1)
@@ -135,10 +144,12 @@ class G2p(object):
 
         preds = []
         for i in range(20):
-            h = self.grucell(dec, h, self.dec_w_ih, self.dec_w_hh, self.dec_b_ih, self.dec_b_hh)  # (b, h)
+            h = self.grucell(dec, h, self.dec_w_ih, self.dec_w_hh,
+                             self.dec_b_ih, self.dec_b_hh)  # (b, h)
             logits = np.matmul(h, self.fc_w.T) + self.fc_b
             pred = logits.argmax()
-            if pred == 3: break  # 3: </s>
+            if pred == 3:
+                break  # 3: </s>
             preds.append(pred)
             dec = np.take(self.dec_emb, [pred], axis=0)
 
@@ -174,21 +185,20 @@ class G2p(object):
                     pron = pron2
             elif word in self.cmu:  # lookup CMU dict
                 pron = self.cmu[word][0]
-            else: # predict for oov
+            else:  # predict for oov
                 pron = self.predict(word)
 
             prons.extend(pron)
-            prons.extend([" "])
 
         return prons[:-1]
 
+
 if __name__ == '__main__':
-    texts = ["I have $250 in my pocket.", # number -> spell-out
-             "popular pets, e.g. cats and dogs", # e.g. -> for example
-             "I refuse to collect the refuse around here.", # homograph
-             "I'm an activationist."] # newly coined word
+    texts = ["I have $250 in my pocket.",  # number -> spell-out
+             "popular pets, e.g. cats and dogs",  # e.g. -> for example
+             "I refuse to collect the refuse around here.",  # homograph
+             "I'm an activationist."]  # newly coined word
     g2p = G2p()
     for text in texts:
         out = g2p(text)
         print(out)
-
