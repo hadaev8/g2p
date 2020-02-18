@@ -190,7 +190,7 @@ class G2p(object):
 
             prons.extend(pron)
 
-        return prons[:-1]
+        return prons
 
 
 if __name__ == '__main__':
