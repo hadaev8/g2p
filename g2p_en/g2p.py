@@ -8,7 +8,7 @@ from nltk import pos_tag
 from nltk.corpus import cmudict
 import nltk
 from nltk.tokenize import RegexpTokenizer
-word_tokenize = RegexpTokenizer('\w+|[^\w|\\n]+').tokenize
+word_tokenize = RegexpTokenizer('\w+|[^\w|\\n]').tokenize
 import numpy as np
 import codecs
 import re
