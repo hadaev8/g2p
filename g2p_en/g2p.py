@@ -15,7 +15,6 @@ import re
 import os
 import unicodedata
 from builtins import str as unicode
-from .expand import normalize_numbers
 
 try:
     nltk.data.find('taggers/averaged_perceptron_tagger.zip')
@@ -159,11 +158,9 @@ class G2p(object):
     def __call__(self, text):
         # preprocessing
         text = unicode(text)
-        text = normalize_numbers(text)
         text = ''.join(char for char in unicodedata.normalize('NFD', text)
                        if unicodedata.category(char) != 'Mn')  # Strip accents
         text = text.lower()
-        text = re.sub("[^ a-z'!\'(),.:;? \"-]", "", text)
         text = text.replace("i.e.", "that is")
         text = text.replace("e.g.", "for example")
 
