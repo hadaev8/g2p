@@ -155,7 +155,7 @@ class G2p(object):
         preds = [self.idx2p.get(idx, "<unk>") for idx in preds]
         return preds
 
-    def __call__(self, text):
+    def __call__(self, text, return_indexes=False):
         # preprocessing
         text = unicode(text)
         text = ''.join(char for char in unicodedata.normalize('NFD', text)
@@ -170,24 +170,30 @@ class G2p(object):
 
         # steps
         prons = []
+        word_index = 0
+        word_indexes = []
         for word, pos in tokens:
             if re.search("[a-z]", word) is None:
                 pron = [word]
-
-            elif word in self.homograph2features:  # Check homograph
-                pron1, pron2, pos1 = self.homograph2features[word]
-                if pos.startswith(pos1):
-                    pron = pron1
-                else:
-                    pron = pron2
-            elif word in self.cmu:  # lookup CMU dict
-                pron = self.cmu[word][0]
-            else:  # predict for oov
-                pron = self.predict(word)
+            else:
+                word_index += 1
+                word_indexes.append(word_indexes)
+                if word in self.homograph2features:  # Check homograph
+                    pron1, pron2, pos1 = self.homograph2features[word]
+                    if pos.startswith(pos1):
+                        pron = pron1
+                    else:
+                        pron = pron2
+                elif word in self.cmu:  # lookup CMU dict
+                    pron = self.cmu[word][0]
+                else:  # predict for oov
+                    pron = self.predict(word)
 
             prons.extend(pron)
-
-        return prons
+        if return_indexes:
+            return prons, word_indexes
+        else:
+            return prons
 
 
 if __name__ == '__main__':
