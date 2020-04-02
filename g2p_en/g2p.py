@@ -175,9 +175,8 @@ class G2p(object):
         for word, pos in tokens:
             if re.search("[a-z]", word) is None:
                 pron = [word]
+                word_indexes.extend([-1] * len(pron))
             else:
-                word_index += 1
-                word_indexes.append(word_indexes)
                 if word in self.homograph2features:  # Check homograph
                     pron1, pron2, pos1 = self.homograph2features[word]
                     if pos.startswith(pos1):
@@ -188,6 +187,8 @@ class G2p(object):
                     pron = self.cmu[word][0]
                 else:  # predict for oov
                     pron = self.predict(word)
+                word_index += 1
+                word_indexes.extend([word_index] * len(pron))
 
             prons.extend(pron)
         if return_indexes:
